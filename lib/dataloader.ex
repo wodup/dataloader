@@ -401,9 +401,32 @@ defmodule Dataloader do
     defdelegate async_stream(items, fun, opts), to: OpentelemetryProcessPropagator.Task
   else
     @spec async((() -> any)) :: Task.t()
-    defdelegate async(fun), to: Task
+    defdelegate async(fun), to: __MODULE__, as: :async_propagate
 
     @spec async_stream(Enumerable.t(), (term -> term), keyword) :: Enumerable.t()
-    defdelegate async_stream(items, fun, opts), to: Task
+    defdelegate async_stream(items, fun, opts), to: __MODULE__, as: :async_stream_propagate
+  end
+
+  def async_propagate(fun) do
+    metadata = Logger.metadata()
+
+    Task.async(fn ->
+      Logger.metadata(metadata)
+      fun.()
+    end)
+  end
+
+  def async_stream_propagate(enumerable, fun, opts \\ []) do
+    metadata = Logger.metadata()
+
+    Task.async_stream(
+      enumerable,
+      fn arg ->
+        Logger.metadata(metadata)
+
+        fun.(arg)
+      end,
+      opts
+    )
   end
 end
