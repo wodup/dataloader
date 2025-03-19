@@ -512,7 +512,15 @@ if Code.ensure_loaded?(Ecto) do
       defp get_keys({assoc_field, opts}, %schema{} = record) when is_atom(assoc_field) do
         validate_queryable(schema)
         primary_keys = schema.__schema__(:primary_key)
-        id = Enum.map(primary_keys, &Map.get(record, &1))
+
+        id =
+          if primary_keys == [] do
+            record
+            |> :erlang.term_to_iovec()
+            |> :erlang.md5()
+          else
+            Enum.map(primary_keys, &Map.get(record, &1))
+          end
 
         queryable = chase_down_queryable([assoc_field], schema)
 
@@ -695,7 +703,7 @@ if Code.ensure_loaded?(Ecto) do
         records = records |> Enum.map(&Map.put(&1, field, empty))
 
         results =
-          if query.limit || query.offset || Enum.any?(query.order_bys) do
+          if query.limit || query.offset do
             records
             |> preload_lateral(field, query, source.repo, repo_opts)
           else
@@ -917,7 +925,8 @@ if Code.ensure_loaded?(Ecto) do
         build_preload_lateral_query(rest, join_query, :join_last)
       end
 
-      defp maybe_distinct(%Ecto.Query{distinct: dist} = query, _) when dist, do: query
+      defp maybe_distinct(%Ecto.Query{distinct: distinct} = query, _) when not is_nil(distinct),
+        do: query
 
       defp maybe_distinct(query, [%Ecto.Association.Has{}, %Ecto.Association.BelongsTo{} | _]),
         do: distinct(query, true)

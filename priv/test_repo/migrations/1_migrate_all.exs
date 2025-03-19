@@ -1,4 +1,4 @@
-defmodule Absinthe.Ecto.TestRepo.Migrations.MigrateAll do
+defmodule Dataloader.Ecto.TestRepo.Migrations.MigrateAll do
   use Ecto.Migration
 
   def change do
@@ -39,6 +39,10 @@ defmodule Absinthe.Ecto.TestRepo.Migrations.MigrateAll do
       add :post_id, references(:posts)
       add :picture_id, references(:pictures)
       add :status, :string
+    end
+
+    create table(:countries) do
+      add :name, :string
     end
   end
 end
